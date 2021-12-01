@@ -1,7 +1,7 @@
-#include<iostream>
+#include <iostream>
 #include <string>
-#include<vector>
-#include<unordered_map>
+#include <vector>
+#include <unordered_map>
 #include <algorithm> 
 using namespace std;
 
@@ -147,6 +147,7 @@ class PolicyParser{
         }
 
         BinNode* S(int* index, vector<string> tokens){
+            cout<<"S"<<*index<<endl;
             BinNode *left = T(index, tokens);
             if(*index < tokens.size() && tokens[*index]=="OR"){
                 (*index)++;
@@ -158,6 +159,7 @@ class PolicyParser{
         }
 
         BinNode* T(int* index, vector<string> tokens){
+            cout<<"T"<<*index<<endl;
             BinNode *left = F(index, tokens);
             if(*index < tokens.size() && tokens[*index]=="AND"){
                 (*index)++;
@@ -169,6 +171,7 @@ class PolicyParser{
         }
 
         BinNode* F(int* index, vector<string> tokens){
+            cout<<"F"<<*index<<endl;
             string token = tokens[*index];
             (*index)++;
             BinNode *node;
@@ -195,34 +198,17 @@ class PolicyParser{
         }
 };
 
-// void walkThrough(BinNode *root){
-// 	if(root){
-// 		cout<<root->getNodeType()<<" ";
-// 		walkThrough(root->left);
-// 		walkThrough(root->right);
-// 	}
-// }
-
-void walkThrough(BinNode *root, string indent, bool last){
-    if(root){
-        if(root->getNodeType()=="AND"||root->getNodeType()=="OR")
-        cout<<indent<<"+- "<<root->getNodeType()<<endl;
-        else{
-            cout<<indent<<"+- "<<root->getNodeType()<<"("<<root->getAttributeAndIndex()<<")"<<endl;
-        }    
-    }
-    indent += last ? "   " : "|  ";
-    if(root->left && root->right){
-        walkThrough(root->left, indent, false);
-        walkThrough(root->right, indent, true);
-    }
-    else if(root->left)
-        walkThrough(root->left, indent, true);
+void walkThrough(BinNode *root){
+	if(root){
+		cout<<root->getNodeType()<<" ";
+		walkThrough(root->left);
+		walkThrough(root->right);
+	}
 }
 
 int main(){
-    string line= "(ONE or TWO) and (!TWO and THREE or FOUR))";
+    string line= "(ONE or TWO) or (!TWO or THREE))";
 	PolicyParser parser = PolicyParser();
     BinNode *root = parser.parse(line);
-    walkThrough(root, "", true);
+    walkThrough(root);
 }
