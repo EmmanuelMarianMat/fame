@@ -1,7 +1,7 @@
-#include<iostream>
+#include <iostream>
 #include <string>
-#include<vector>
-#include<unordered_map>
+#include <vector>
+#include <unordered_map>
 #include <algorithm> 
 using namespace std;
 
@@ -25,12 +25,10 @@ class BinNode{
         BinNode* right;
 
         BinNode(string value, BinNode *leftn = NULL, BinNode *rightn = NULL){
-            if(value=="and"||value=="AND"){
+            if(value=="and"||value=="AND")
                 node_type = "AND";
-            }
-            else if(value=="or"||value=="OR"){
+            else if(value=="or"||value=="OR")
                 node_type = "OR";
-            }
             else{
                 negated = false;
                 index = -1; //None
@@ -104,12 +102,10 @@ class PolicyParser{
             vector<string> tokens;
             do{
                 ch = line[i];
-                if(ch=='('){
+                if(ch=='(')
                     tokens.push_back("(");
-                }
-                else if(ch==')'){
+                else if(ch==')')
                     tokens.push_back(")");
-                }
                 else if((ch>='a' && ch<='z') || (ch>='A' && ch<='Z') || (ch>='0' && ch<='9') || ch=='!'){
                     if((ch=='a' || ch=='A') && (line[i+1]=='n' || line[i+1]=='N') && (line[i+2]=='d' || line[i+2]=='D')){
                             tokens.push_back("AND");
@@ -131,7 +127,6 @@ class PolicyParser{
                             if(line[i]==')'){
                                 parenEnd = true;
                             }
-
                         }
                         tokens.push_back(attr);
                         if(parenEnd)
@@ -176,9 +171,8 @@ class PolicyParser{
                 node = S(index, tokens);
                 (*index)++;
             }
-            else{
+            else
                 node = new BinNode(token);
-            }
             return node;
         }
 
@@ -206,10 +200,9 @@ class PolicyParser{
 void walkThrough(BinNode *root, string indent, bool last){
     if(root){
         if(root->getNodeType()=="AND"||root->getNodeType()=="OR")
-        cout<<indent<<"+- "<<root->getNodeType()<<endl;
-        else{
+            cout<<indent<<"+- "<<root->getNodeType()<<endl;
+        else
             cout<<indent<<"+- "<<root->getNodeType()<<"("<<root->getAttributeAndIndex()<<")"<<endl;
-        }    
     }
     indent += last ? "   " : "|  ";
     if(root->left && root->right){
@@ -221,7 +214,7 @@ void walkThrough(BinNode *root, string indent, bool last){
 }
 
 int main(){
-    string line= "(ONE or TWO) and (!TWO and THREE or FOUR))";
+    string line= "(ONE_01 or TWO2_02) and (!TWO_202 and THREE3_33 or FOUR_4) or (FIVE and SIX and SEVEN))";
 	PolicyParser parser = PolicyParser();
     BinNode *root = parser.parse(line);
     walkThrough(root, "", true);
