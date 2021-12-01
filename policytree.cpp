@@ -1,7 +1,7 @@
-#include<iostream>
+#include <iostream>
 #include <string>
-#include<vector>
-#include<unordered_map>
+#include <vector>
+#include <unordered_map>
 #include <algorithm> 
 using namespace std;
 
@@ -187,7 +187,6 @@ class PolicyParser{
 
         BinNode* parse(string line){
             /*
-            
                 S → T '+' S | T
                 T → F '.' T | F
                 F → A | '('S')'
