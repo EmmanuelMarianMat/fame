@@ -3,12 +3,22 @@
 #include <string>
 #include <algorithm> 
 #include <vector>
+#include <unordered_map>
 
 // Include guard
 #ifndef CLASS_DEFINITIONS_H_
 #define CLASS_DEFINITIONS_H_
 
 using namespace std;
+
+unordered_map<string,int> OpType = {
+    {"OR",0},
+    {"AND",1},
+    {"ATTR",2},
+    {"THRESHOLD",3},
+    {"CONDITIONAL",4},
+    {"NONE",5}
+};
 
 class BinNode{
     public:
@@ -50,6 +60,17 @@ class BinNode{
             
             left = leftn;
             right = rightn;
+        }
+
+        string getAttribute(){
+            string return_val = "";
+            string attr = "ATTR";
+            if(node_type==attr){
+                if(negated)
+                    return_val += '!';
+                return_val += attribute;
+            }
+            return return_val;
         }
 
         string getAttributeAndIndex(){
@@ -138,6 +159,7 @@ class PolicyParser{
         }
 
         BinNode* S(int* index, vector<string> tokens){
+            cout<<"S "<<*index<<" "<<tokens[*index]<<endl;
             BinNode *left = T(index, tokens);
             if(*index < tokens.size() && tokens[*index]=="OR"){
                 (*index)++;
@@ -149,6 +171,7 @@ class PolicyParser{
         }
 
         BinNode* T(int* index, vector<string> tokens){
+            cout<<"T "<<*index<<" "<<tokens[*index]<<endl;
             BinNode *left = F(index, tokens);
             if(*index < tokens.size() && tokens[*index]=="AND"){
                 (*index)++;
@@ -160,6 +183,7 @@ class PolicyParser{
         }
 
         BinNode* F(int* index, vector<string> tokens){
+            cout<<"F "<<*index<<" "<<tokens[*index]<<endl;
             string token = tokens[*index];
             (*index)++;
             BinNode *node;
@@ -182,6 +206,130 @@ class PolicyParser{
             vector<string> tokens = get_tokens(line);
             int index = 0;
             return S(&index, tokens);
+        }
+
+        void findDuplicates(BinNode* tree, unordered_map<string,int> &dict){
+            if(tree->left)
+                findDuplicates(tree->left, dict);
+            if(tree->right)
+                findDuplicates(tree->right, dict);
+            string attr = "ATTR";
+            if(tree->node_type == attr){
+                string key = tree->getAttribute();
+                dict[key] = dict.find(key) == dict.end() ? 1 : dict[key]+1;
+            }
+        }
+        
+        void labelDuplicates(BinNode* tree, unordered_map<string,int> &dictLabel){
+            if(tree->left)
+                labelDuplicates(tree->left, dictLabel);
+            if(tree->right)
+                labelDuplicates(tree->right, dictLabel);
+            string attr = "ATTR";
+            if(tree->node_type == attr){
+                string key = tree->getAttribute();
+                if(dictLabel.find(key) == dictLabel.end()){
+                    tree->index = dictLabel[key];
+                    dictLabel[key]++;
+                }
+            }
+        }
+};
+
+
+
+class Schemebase{
+    public:
+        unordered_map<string, string> properties;
+
+    protected:
+        bool setProperty(string scheme = ""){
+            if(scheme.compare("")){
+                properties["scheme"] = scheme;
+            }
+            return true;
+        }
+
+        unordered_map<string, string> getProperty(){
+            return properties;
+        }
+};
+
+class ABEnc: public Schemebase{
+    unordered_map<string, int> baseSecDefs;
+    ABEnc(){
+        setProperty("ABEnc");
+        baseSecDefs = {
+            {"IND_AB_CPA", 0},
+            {"IND_AB_CCA", 1},
+            {"sIND_AB_CPA", 2},
+            {"sIND_AB_CCA", 3}
+        };
+    }
+};
+
+class MSP{
+    public:
+        int len_longest_row;
+
+        MSP(){
+            len_longest_row = 1;
+        }
+
+        BinNode* createPolicy(string policy_string){
+            PolicyParser parser = PolicyParser();
+            BinNode *policy_obj = parser.parse(policy_string);
+            unordered_map<string,int> dictCount, dictLabel;
+            parser.findDuplicates(policy_obj, dictCount);
+            for(auto i:dictCount)
+                if(i.second>1)
+                    dictLabel[i.first] = 0;
+            parser.labelDuplicates(policy_obj, dictLabel);
+            return policy_obj;
+        }
+
+        unordered_map<string, vector<int>> convertPolicyToMSP(BinNode *tree){
+            vector<int> root_vector(1,1);
+            len_longest_row = 1;
+            return convertPolicyToMSP_Helper(tree, root_vector);
+        }
+    
+    protected:
+        unordered_map<string, vector<int>> convertPolicyToMSP_Helper(BinNode *subtree, vector<int> &curr_vector){
+            unordered_map<string, vector<int>> um;
+            if(!subtree)
+                return um;
+            
+            string type = subtree->getNodeType();
+            string attr = "ATTR";
+            string or_node = "OR";
+            string and_node = "AND";
+            if(type == attr){
+                um[subtree->getAttributeAndIndex()] = curr_vector;
+                return um;
+            }
+            else if(type == or_node){
+                unordered_map<string, vector<int>> left_dict, right_dict;
+                left_dict = convertPolicyToMSP_Helper(subtree->getLeft(), curr_vector);
+                right_dict = convertPolicyToMSP_Helper(subtree->getRight(), curr_vector);
+                left_dict.insert(right_dict.begin(), right_dict.end());
+                return left_dict;
+            }
+            else if(type == and_node){
+                int length = curr_vector.size();
+                vector<int> left_vector = curr_vector;
+                for(int i=0; i<len_longest_row-length; i++)
+                    left_vector.push_back(0);
+                left_vector.push_back(1);
+                vector<int> right_vector(len_longest_row,0);
+                right_vector.push_back(-1);
+                len_longest_row++;
+                unordered_map<string, vector<int>> left_dict, right_dict;
+                left_dict = convertPolicyToMSP_Helper(subtree->getLeft(), curr_vector);
+                right_dict = convertPolicyToMSP_Helper(subtree->getRight(), curr_vector);
+                left_dict.insert(right_dict.begin(), right_dict.end());
+                return left_dict;
+            }
         }
 };
 
