@@ -4,6 +4,7 @@
 #include <algorithm> 
 #include <vector>
 #include <unordered_map>
+#include <utility>
 
 // Include guard
 #ifndef CLASS_DEFINITIONS_H_
@@ -234,6 +235,64 @@ class PolicyParser{
                 }
             }
         }
+
+        pair<bool, vector<BinNode*>> requiredAttributes(BinNode *tree, vector<string> &attrList){
+            vector<BinNode*> sendThis;
+            if(!tree)
+                return make_pair(false, sendThis);
+            BinNode *left = tree->getLeft();
+            BinNode *right = tree-> getRight();
+            pair<bool, vector<BinNode*>> return_pair_left, return_pair_right;
+            if(left)
+                return_pair_left = requiredAttributes(left, attrList);
+            if(right)
+                return_pair_right = requiredAttributes(right, attrList);
+            string type = tree->getNodeType();
+            string attr = "ATTR";
+            string or_node = "OR";
+            string and_node = "AND";
+            
+            if(type == or_node){
+                if(return_pair_left.first)
+                    sendThis = return_pair_left.second;
+                else if(return_pair_right.first)
+                    sendThis = return_pair_right.second;
+                return make_pair(return_pair_left.first||return_pair_right.first, sendThis);  
+            }
+            else if(type == and_node){
+                if(return_pair_left.first&&return_pair_right.first){
+                    sendThis.reserve(return_pair_left.second.size() + return_pair_right.second.size());
+                    sendThis.insert(sendThis.end(), return_pair_left.second.begin(), return_pair_left.second.end());
+                    sendThis.insert(sendThis.end(), return_pair_right.second.begin(), return_pair_right.second.end());
+                }
+                else if(return_pair_left.first){
+                    sendThis.reserve(return_pair_left.second.size());
+                    sendThis.insert(sendThis.end(), return_pair_left.second.begin(), return_pair_left.second.end());
+                }
+                else if(return_pair_right.first){
+                    sendThis.reserve(return_pair_right.second.size());
+                    sendThis.insert(sendThis.end(), return_pair_right.second.begin(), return_pair_right.second.end());
+                }
+                return make_pair(return_pair_left.first&&return_pair_right.first, sendThis);
+            } 
+            else if(type == attr){
+                if(find(attrList.begin(), attrList.end(), tree->getAttribute())!=attrList.end()){
+                    sendThis.push_back(tree);
+                    return make_pair(true, sendThis);  
+                }
+                else
+                    return make_pair(false, sendThis);
+            }
+            return make_pair(false, sendThis);
+        }
+
+        vector<BinNode*> prune(BinNode *tree, vector<string> attributes){
+            pair<bool, vector<BinNode*>> return_pair = requiredAttributes(tree, attributes);
+            vector<BinNode*> emptyPrunedList;
+            if(return_pair.first)
+                return emptyPrunedList;
+            return return_pair.second;
+        }
 };
 
 
@@ -293,6 +352,17 @@ class MSP{
             len_longest_row = 1;
             return convertPolicyToMSP_Helper(tree, root_vector);
         }
+
+        vector<BinNode*> prune(BinNode *policy, vector<string> attributes){
+            PolicyParser parser = PolicyParser();
+            return parser.prune(policy, attributes);
+        }
+
+        vector<string> getAttributeList(BinNode *tree){
+            vector<string> return_vector;
+            getAttributeListHelper(tree, return_vector);
+            return return_vector;
+        }
     
     protected:
         unordered_map<string, vector<int>> convertPolicyToMSP_Helper(BinNode *subtree, vector<int> &curr_vector){
@@ -329,6 +399,21 @@ class MSP{
                 right_dict = convertPolicyToMSP_Helper(subtree->getRight(), curr_vector);
                 left_dict.insert(right_dict.begin(), right_dict.end());
                 return left_dict;
+            }
+            return um;
+        }
+
+        void getAttributeListHelper(BinNode *tree, vector<string> &list){
+            if(tree){
+                string type = tree->getNodeType();
+                string attr = "ATTR";
+                if(type == attr){
+                    list.push_back(tree->getAttributeAndIndex());
+                }
+                else{
+                    getAttributeListHelper(tree->getLeft(), list);
+                    getAttributeListHelper(tree->getRight(), list);
+                }
             }
         }
 };

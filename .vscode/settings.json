@@ -6,6 +6,7 @@
         "xhash": "cpp",
         "vector": "cpp",
         "utility": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "list": "cpp"
     }
 }
