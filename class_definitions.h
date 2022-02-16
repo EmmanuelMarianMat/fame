@@ -22,14 +22,15 @@ unordered_map<string,int> OpType = {
 };
 
 class BinNode{
-    public:
-        // string value;
+    private:
         string node_type;
         string attribute;
         int index;
         bool negated;
         BinNode* left;
         BinNode* right;
+    public:
+        // string value;
 
         BinNode(string value, BinNode *leftn = NULL, BinNode *rightn = NULL){
             if(value=="and"||value=="AND")
@@ -47,6 +48,7 @@ class BinNode{
                 size_t pos = value.find('_');
                 if(pos !=string::npos)
                 {
+                    cout<<value<<endl;
                     string rest = value.substr(pos+1, value.size());
                     value = value.substr(0, pos);
                     pos = rest.find('_');
@@ -75,6 +77,7 @@ class BinNode{
         }
 
         string getAttributeAndIndex(){
+            // cout<<endl<<index<<attribute<<endl;
             string return_val = "";
             string attr = "ATTR";
             if(node_type==attr){
@@ -97,6 +100,14 @@ class BinNode{
 
         BinNode* getRight(){
             return right;
+        }
+
+        int getIndex(){
+            return index;
+        }
+
+        void setIndex(int value){
+            index = value;
         }
 
         void addSubNode(BinNode *leftn, BinNode *rightn){
@@ -160,7 +171,7 @@ class PolicyParser{
         }
 
         BinNode* S(int* index, vector<string> tokens){
-            cout<<"S "<<*index<<" "<<tokens[*index]<<endl;
+            // cout<<"S "<<*index<<" "<<tokens[*index]<<endl;
             BinNode *left = T(index, tokens);
             if(*index < tokens.size() && tokens[*index]=="OR"){
                 (*index)++;
@@ -172,7 +183,7 @@ class PolicyParser{
         }
 
         BinNode* T(int* index, vector<string> tokens){
-            cout<<"T "<<*index<<" "<<tokens[*index]<<endl;
+            // cout<<"T "<<*index<<" "<<tokens[*index]<<endl;
             BinNode *left = F(index, tokens);
             if(*index < tokens.size() && tokens[*index]=="AND"){
                 (*index)++;
@@ -184,7 +195,7 @@ class PolicyParser{
         }
 
         BinNode* F(int* index, vector<string> tokens){
-            cout<<"F "<<*index<<" "<<tokens[*index]<<endl;
+            // cout<<"F "<<*index<<" "<<tokens[*index]<<endl;
             string token = tokens[*index];
             (*index)++;
             BinNode *node;
@@ -210,27 +221,27 @@ class PolicyParser{
         }
 
         void findDuplicates(BinNode* tree, unordered_map<string,int> &dict){
-            if(tree->left)
-                findDuplicates(tree->left, dict);
-            if(tree->right)
-                findDuplicates(tree->right, dict);
+            if(tree->getLeft())
+                findDuplicates(tree->getLeft(), dict);
+            if(tree->getRight())
+                findDuplicates(tree->getRight(), dict);
             string attr = "ATTR";
-            if(tree->node_type == attr){
+            if(tree->getNodeType() == attr){
                 string key = tree->getAttribute();
                 dict[key] = dict.find(key) == dict.end() ? 1 : dict[key]+1;
             }
         }
         
         void labelDuplicates(BinNode* tree, unordered_map<string,int> &dictLabel){
-            if(tree->left)
-                labelDuplicates(tree->left, dictLabel);
-            if(tree->right)
-                labelDuplicates(tree->right, dictLabel);
+            if(tree->getLeft())
+                labelDuplicates(tree->getLeft(), dictLabel);
+            if(tree->getRight())
+                labelDuplicates(tree->getRight(), dictLabel);
             string attr = "ATTR";
-            if(tree->node_type == attr){
+            if(tree->getNodeType() == attr){
                 string key = tree->getAttribute();
-                if(dictLabel.find(key) == dictLabel.end()){
-                    tree->index = dictLabel[key];
+                if(dictLabel.find(key) != dictLabel.end()){
+                    tree->setIndex(dictLabel[key]);
                     dictLabel[key]++;
                 }
             }
@@ -240,6 +251,10 @@ class PolicyParser{
             vector<BinNode*> sendThis;
             if(!tree)
                 return make_pair(false, sendThis);
+            // cout<<tree->getAttributeAndIndex();
+            // for(auto i: attrList)
+            //     cout<<i<<endl;
+            // cout<<endl;
             BinNode *left = tree->getLeft();
             BinNode *right = tree-> getRight();
             pair<bool, vector<BinNode*>> return_pair_left, return_pair_right;
@@ -289,7 +304,7 @@ class PolicyParser{
         vector<BinNode*> prune(BinNode *tree, vector<string> attributes){
             pair<bool, vector<BinNode*>> return_pair = requiredAttributes(tree, attributes);
             vector<BinNode*> emptyPrunedList;
-            if(return_pair.first)
+            if(!return_pair.first)
                 return emptyPrunedList;
             return return_pair.second;
         }
@@ -415,6 +430,14 @@ class MSP{
                     getAttributeListHelper(tree->getRight(), list);
                 }
             }
+        }
+
+        string strip_index(string node_str){
+            size_t pos = node_str.find('_');
+            if(pos !=string::npos){
+                return node_str.substr(0,pos);
+            }
+            return node_str;
         }
 };
 

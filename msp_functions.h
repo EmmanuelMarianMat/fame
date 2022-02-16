@@ -15,12 +15,12 @@ void walkThrough(BinNode *root, string indent, bool last){
             cout<<indent<<"+- "<<root->getNodeType()<<"("<<root->getAttributeAndIndex()<<")"<<endl;
     }
     indent += last ? "   " : "|  ";
-    if(root->left && root->right){
-        walkThrough(root->left, indent, false);
-        walkThrough(root->right, indent, true);
+    if(root->getLeft() && root->getRight()){
+        walkThrough(root->getLeft(), indent, false);
+        walkThrough(root->getRight(), indent, true);
     }
-    else if(root->left)
-        walkThrough(root->left, indent, true);
+    else if(root->getLeft())
+        walkThrough(root->getLeft(), indent, true);
 }
 
 #endif

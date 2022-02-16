@@ -18,12 +18,13 @@ using namespace std;
 // };
 
 int main(){
-    string line= "((ONE and THREE) and (TWO OR FOUR))";
+    string line= "(((ONE and THREE) and (TWO OR FOUR)) or (THREE and FOUR))";
 	PolicyParser parser = PolicyParser();
     BinNode *root = parser.parse(line);
     // walkThrough(root, "", true);
     MSP msp = MSP();
     BinNode *policy = msp.createPolicy(line);
+    // walkThrough(policy, "", true);
     unordered_map<string, vector<int>> mono_span_prog = msp.convertPolicyToMSP(policy);
     int num_cols = msp.len_longest_row;
     // for(auto i: mono_span_prog){
@@ -33,7 +34,10 @@ int main(){
     //     cout<<endl;
     // }
     vector<string> attrList = msp.getAttributeList(policy);
-    vector<BinNode*> prunedPolicy = msp.prune(policy, attrList);
+    // for(auto i: attrList)
+    //     cout<<i<<endl;
+    vector<string> attrList2{"ONE", "TWO", "THREE"};
+    vector<BinNode*> prunedPolicy = msp.prune(policy, attrList2);
     for(auto i: prunedPolicy)
-        cout<<i->getAttributeAndIndex()<<endl;
+        cout<<i->getAttribute()<<endl;
 }
