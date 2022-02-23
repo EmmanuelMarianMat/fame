@@ -1,7 +1,7 @@
 try:
   from pairingcurves import params as param_info
   #TODO pairing . c cant be imported
-  from pairing import pairing,pc_element,ZR,G1,G2,GT,init,pair,hashPair,H,random,serialize,deserialize,ismember,order
+  from math.pairing import pairing,pc_element,ZR,G1,G2,GT,init,pair,hashPair,H,random,serialize,deserialize,ismember,order
   import pairing as pg
   from config import libs,pairing_lib
 except Exception as err:
