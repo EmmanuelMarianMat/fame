@@ -18,7 +18,7 @@ using namespace std;
 // };
 
 int main(){
-    string line= "(((ONE and THREE) and (TWO OR FOUR)) or (THREE and FOUR))";
+    string line= "((((ONE OR THREE) AND (FOUR AND FIVE)) OR ((TWO AND FOUR) AND (ONE OR TWO))) AND((ONE OR TWO) AND ((THREE OR FIVE) AND (TWO OR FOUR))))";
 	PolicyParser parser = PolicyParser();
     BinNode *root = parser.parse(line);
     // walkThrough(root, "", true);
@@ -36,7 +36,7 @@ int main(){
     vector<string> attrList = msp.getAttributeList(policy);
     // for(auto i: attrList)
     //     cout<<i<<endl;
-    vector<string> attrList2{"ONE", "TWO", "THREE"};
+    vector<string> attrList2{"ONE", "TWO", "THREE","FOUR"};
     vector<BinNode*> prunedPolicy = msp.prune(policy, attrList2);
     for(auto i: prunedPolicy)
         cout<<i->getAttribute()<<endl;
