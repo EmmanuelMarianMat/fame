@@ -18,7 +18,8 @@ using namespace std;
 // };
 
 int main(){
-    string line= "((((ONE OR THREE) AND (FOUR AND FIVE)) OR ((TWO AND FOUR) AND (ONE OR TWO))) AND((ONE OR TWO) AND ((THREE OR FIVE) AND (TWO OR FOUR))))";
+    // string line= "((((ONE OR THREE) AND (FOUR AND FIVE)) OR ((TWO AND FOUR) AND (ONE OR TWO))) AND((ONE OR TWO) AND ((THREE OR FIVE) AND (TWO OR FOUR))))";
+    string line = "(((ONE and THREE) and (TWO OR FOUR)) or (THREE and FOUR))";
 	PolicyParser parser = PolicyParser();
     BinNode *root = parser.parse(line);
     // walkThrough(root, "", true);
@@ -27,12 +28,13 @@ int main(){
     // walkThrough(policy, "", true);
     unordered_map<string, vector<int>> mono_span_prog = msp.convertPolicyToMSP(policy);
     int num_cols = msp.len_longest_row;
-    // for(auto i: mono_span_prog){
-    //     cout<<i.first<<endl;
-    //     for(auto j: i.second)
-    //         cout<<j;
-    //     cout<<endl;
-    // }
+    for(auto i: mono_span_prog){
+        cout<<i.first<<" ";
+        for(auto j: i.second)
+            cout<<j<<" ";
+        cout<<endl;
+    }
+    cout<<endl<<endl;
     vector<string> attrList = msp.getAttributeList(policy);
     // for(auto i: attrList)
     //     cout<<i<<endl;
@@ -40,4 +42,20 @@ int main(){
     vector<BinNode*> prunedPolicy = msp.prune(policy, attrList2);
     for(auto i: prunedPolicy)
         cout<<i->getAttribute()<<endl;
+    cout<<endl<<endl;
+    attrList2 = {"TWO", "THREE","FOUR"};
+    prunedPolicy = msp.prune(policy, attrList2);
+    for(auto i: prunedPolicy)
+        cout<<i->getAttribute()<<endl;
+    cout<<endl<<endl;
+    // attrList2 = {"ONE", "TWO", "THREE","FOUR", "FIVE"};
+    // prunedPolicy = msp.prune(policy, attrList2);
+    // for(auto i: prunedPolicy)
+    //     cout<<i->getAttribute()<<endl;
+    // cout<<endl<<endl;
+    // attrList2 = {"TWO", "THREE","FOUR", "FIVE"};
+    // prunedPolicy = msp.prune(policy, attrList2);
+    // for(auto i: prunedPolicy)
+    //     cout<<i->getAttribute()<<endl;
+    // cout<<endl<<endl;
 }

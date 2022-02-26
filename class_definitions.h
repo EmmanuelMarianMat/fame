@@ -410,8 +410,8 @@ class MSP{
                 right_vector.push_back(-1);
                 len_longest_row++;
                 unordered_map<string, vector<int>> left_dict, right_dict;
-                left_dict = convertPolicyToMSP_Helper(subtree->getLeft(), curr_vector);
-                right_dict = convertPolicyToMSP_Helper(subtree->getRight(), curr_vector);
+                left_dict = convertPolicyToMSP_Helper(subtree->getLeft(), left_vector);
+                right_dict = convertPolicyToMSP_Helper(subtree->getRight(), right_vector);
                 left_dict.insert(right_dict.begin(), right_dict.end());
                 return left_dict;
             }
