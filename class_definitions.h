@@ -48,7 +48,7 @@ class BinNode{
                 size_t pos = value.find('_');
                 if(pos !=string::npos)
                 {
-                    cout<<value<<endl;
+                    // cout<<value<<endl;
                     string rest = value.substr(pos+1, value.size());
                     value = value.substr(0, pos);
                     pos = rest.find('_');
