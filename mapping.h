@@ -441,8 +441,9 @@ class Pairing_module {
 		}
 	}
 
-	static long *Get_Order(Pairing *group = NULL) {
-		long *object = group->pair_obj->r;
+	static long Get_Order(Pairing *group = NULL) {
+		long object;
+		mpz_set_si(group->pair_obj->r, object);
 		return object; /* returns a PyInt */
 	}
 };
