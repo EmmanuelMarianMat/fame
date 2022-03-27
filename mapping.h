@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string>
 #include <cstring>
+#include "base64.h"
 #include <openssl/objects.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
@@ -43,21 +44,22 @@ typedef struct {
   int elem_initPP;
 } Element;
 
+#define IS_SAME_GROUP(a, b) \
+	if(strncmp((const char *) a->pairing->hash_id, (const char *) b->pairing->hash_id, ID_LEN) != 0) {	\
+		cout<<"mixing group elements from different curves.";	\
+		return NULL;	\
+	}
+
 int hash_to_bytes(uint8_t *input_buf, int input_len, uint8_t *output_buf, int hash_len, uint8_t hash_prefix)
 {
 	SHA256_CTX sha2;
 	const int new_input_len = input_len + 2; // extra byte for prefix
 	uint8_t new_input[new_input_len];
-	//	printf("orig input => \n");
-	//	printf_buffer_as_hex(input_buf, input_len);
 	memset(new_input, 0, new_input_len);
 	new_input[0] = (uint8_t)1; // block number (always 1 by default)
 	new_input[1] = hash_prefix; // set hash prefix
 	memcpy(new_input+2, input_buf, input_len); // copy input bytes
 
-	//	printf("new input => \n");
-	//	printf_buffer_as_hex(new_input, new_input_len);
-	// prepare output buf
 	memset(output_buf, 0, hash_len);
 
 	if (hash_len <= HASH_LEN) {
@@ -124,33 +126,72 @@ char *convert_buffer_to_hex(uint8_t * data, size_t len)
 	return tmp2;
 }
 
-class Pairing_module {
-    // assumes that pairing structure has been initialized
-    static Element *createNewElement(GroupType element_type, Pairing *pairing) {
-	    Element *retObject;
-	    if(element_type == ZR) {
-		    element_init_Zr(retObject->e, pairing->pair_obj);
-		    retObject->element_type = ZR;
-	    }
-	    else if(element_type == G1) {
-		    element_init_G1(retObject->e, pairing->pair_obj);
-		    retObject->element_type = G1;
-	    }
-	    else if(element_type == G2) {
-		    element_init_G2(retObject->e, pairing->pair_obj);
-		    retObject->element_type = G2;
-	    }
-	    else if(element_type == GT) {
-		    element_init_GT(retObject->e, pairing->pair_obj);
-		    retObject->element_type = GT;
-	    }
+// assumes that pairing structure has been initialized
+static Element *createNewElement(GroupType element_type, Pairing *pairing) {
+	Element *retObject;
+	if(element_type == ZR) {
+		element_init_Zr(retObject->e, pairing->pair_obj);
+		retObject->element_type = ZR;
+	}
+	else if(element_type == G1) {
+		element_init_G1(retObject->e, pairing->pair_obj);
+		retObject->element_type = G1;
+	}
+	else if(element_type == G2) {
+		element_init_G2(retObject->e, pairing->pair_obj);
+		retObject->element_type = G2;
+	}
+	else if(element_type == GT) {
+		element_init_GT(retObject->e, pairing->pair_obj);
+		retObject->element_type = GT;
+	}
 	
-	    retObject->elem_initialized = TRUE;
-	    retObject->elem_initPP = FALSE;
-	    retObject->pairing = pairing;
-	    return retObject;	
-    }
+	retObject->elem_initialized = TRUE;
+	retObject->elem_initPP = FALSE;
+	retObject->pairing = pairing;
+	return retObject;	
+}
 
+int check_membership(Element *elementObj) {
+	int result = -1;
+	element_t e;
+
+	if(elementObj->element_type == ZR) {
+		/* check value is between 1 and order */
+		mpz_t zr;
+		mpz_init(zr);
+		element_to_mpz(zr, elementObj->e);
+		int ans = mpz_cmp(zr, elementObj->pairing->pair_obj->Zr->order);
+		result = ans <= 0 ? TRUE : FALSE;
+		mpz_clear(zr);
+	}
+	/* for G1, G2, and GT test e^q == 1 (mod q)? */
+	else if(elementObj->element_type == G1) {
+		element_init_G1(e, elementObj->pairing->pair_obj);
+		element_pow_mpz(e, elementObj->e, elementObj->pairing->pair_obj->G1->order);
+//		element_printf("Elment->e => '%B'\n", e);
+		result = element_is1(e) ? TRUE : FALSE; // TODO: verify this
+		element_clear(e);
+	}
+	else if(elementObj->element_type == G2) {
+		element_init_G2(e, elementObj->pairing->pair_obj);
+		element_pow_mpz(e, elementObj->e, elementObj->pairing->pair_obj->G2->order);
+//		element_printf("Elment->e => '%B'\n", e);
+		result = element_is1(e) ? TRUE : FALSE; // TODO: verify this
+		element_clear(e);
+	}
+	else if(elementObj->element_type == GT) {
+		element_init_GT(e, elementObj->pairing->pair_obj);
+		element_pow_mpz(e, elementObj->e, elementObj->pairing->pair_obj->GT->order);
+//		element_printf("Elment->e => '%B'\n", e);
+		result = element_is1(e) ? TRUE : FALSE; // TODO: verify this
+		element_clear(e);
+	}
+	else {/* not a valid type */ }
+	return result;
+}
+
+class Pairing_module {
     static Element *Element_elem(Pairing *group, int type,unsigned long long_obj=LONG_MAX){
 	    Element *retObject = NULL;
 
@@ -174,41 +215,33 @@ class Pairing_module {
 		return retObject;
     }
 
-    static Element *Element_random(Pairing *group, int arg1, int seed=-1){
-        Element *retObject;
-    	int e_type = -1;
-    	if(arg1 == ZR) {
-    		element_init_Zr(retObject->e, group->pair_obj);
-    		e_type = ZR;
-    	}
-    	else if(arg1 == G1) {
-    		element_init_G1(retObject->e, group->pair_obj);
-    		e_type = G1;
-    	}
-    	else if(arg1 == G2) {
-    		element_init_G2(retObject->e, group->pair_obj);
-    		e_type = G2;
-    	}
-    	else if(arg1 == GT) {
-    		cout<<"cannot generate random elements in GT.";
-            return NULL;
-    	}
-    	else {
-    		cout<<"unrecognized group type.";
-            return NULL;
-    	}
-
-    	if(seed > -1) {
-    		pbc_random_set_deterministic((uint32_t) seed);
-    	}
-    	element_random(retObject->e);
-    	retObject->elem_initialized = TRUE;
-    	retObject->elem_initPP = FALSE;
-    	retObject->element_type = (GroupType)e_type;
-    	/* set the group object for element operations */
-    	retObject->pairing = group;
-        return retObject;
-    }
+	Element *Apply_pairing(Element *lhs, Element *rhs, Pairing *group = NULL){
+		Element *newObject;
+		IS_SAME_GROUP(lhs, rhs);
+		if(pairing_is_symmetric(lhs->pairing->pair_obj)) {
+			newObject = createNewElement(GT, lhs->pairing);
+			pairing_apply(newObject->e, lhs->e, rhs->e, rhs->pairing->pair_obj);
+			return newObject;
+		}
+		if(lhs->element_type == rhs->element_type){
+			if(lhs->element_type == G1){
+				cout<<"Both elements are of type G1 in asymmetric pairing";
+				return NULL;
+			}
+			if(lhs->element_type == G2){
+				cout<<"Both elements are of type G2 in asymmetric pairing";
+				return NULL;
+			}
+			cout<<"Unexpected elements type in asymmetric pairing product";
+			return NULL;
+		}
+		newObject = createNewElement(GT, lhs->pairing);
+		if(lhs->element_type == G1)
+			pairing_apply(newObject->e, lhs->e, rhs->e, rhs->pairing->pair_obj);
+		else if(lhs->element_type == G2)
+			pairing_apply(newObject->e, rhs->e, lhs->e, rhs->pairing->pair_obj);
+		return newObject;
+	}
 
 	string sha2_hash(Element *object, int label){
 		char* hash_hex = NULL;
@@ -272,6 +305,145 @@ class Pairing_module {
 			cout<<"cannot hash a string to that field. Only Zr or G1.";
 			return NULL;
 		}
+		return newObject;
+	}
+
+    static Element *Element_random(Pairing *group, int arg1, int seed=-1){
+        Element *retObject;
+    	int e_type = -1;
+    	if(arg1 == ZR) {
+    		element_init_Zr(retObject->e, group->pair_obj);
+    		e_type = ZR;
+    	}
+    	else if(arg1 == G1) {
+    		element_init_G1(retObject->e, group->pair_obj);
+    		e_type = G1;
+    	}
+    	else if(arg1 == G2) {
+    		element_init_G2(retObject->e, group->pair_obj);
+    		e_type = G2;
+    	}
+    	else if(arg1 == GT) {
+    		cout<<"cannot generate random elements in GT.";
+            return NULL;
+    	}
+    	else {
+    		cout<<"unrecognized group type.";
+            return NULL;
+    	}
+
+    	if(seed > -1) {
+    		pbc_random_set_deterministic((uint32_t) seed);
+    	}
+    	element_random(retObject->e);
+    	retObject->elem_initialized = TRUE;
+    	retObject->elem_initPP = FALSE;
+    	retObject->element_type = (GroupType)e_type;
+    	/* set the group object for element operations */
+    	retObject->pairing = group;
+        return retObject;
+    }
+
+	static const char* Serialize_cmp(Element *element = NULL, int compression=1){
+		if(element->elem_initialized == FALSE) {
+			cout<<"Element not initialized.";
+			return NULL;
+		}
+
+		int elem_len = 0;
+		uint8_t *data_buf = NULL;
+		size_t bytes_written;
+		if(element->element_type == ZR || element->element_type == GT) {
+			elem_len = element_length_in_bytes(element->e);
+			data_buf = (uint8_t *) malloc(elem_len + 1);
+			if(data_buf == NULL){
+				cout<<"heap full";
+				return NULL;
+			}
+			// write to char buffer
+			bytes_written = element_to_bytes(data_buf, element->e);
+		}
+		else if(element->element_type != NONE_G) {
+		// object initialized now retrieve element and serialize to a char buffer.
+			if(compression){
+				elem_len = element_length_in_bytes_compressed(element->e);
+			}else{
+				elem_len = element_length_in_bytes(element->e);
+			}
+			data_buf = (uint8_t *) malloc(elem_len + 1);
+			if(data_buf == NULL){
+				cout<<"heap full";
+				return NULL;
+			}
+			// write to char buffer
+			if(compression)
+				bytes_written = element_to_bytes_compressed(data_buf, element->e);
+			else
+				bytes_written = element_to_bytes(data_buf, element->e);
+		}
+		else {
+			cout<<"Invalid element type.";
+			return NULL;
+		}
+
+		// convert to base64 and return as a string?
+		size_t length = 0;
+		char *base64_data_buf = NewBase64Encode(data_buf, bytes_written, FALSE, &length);
+		//PyObject *result = PyUnicode_FromFormat("%d:%s", element->element_type, (const char *) base64_data_buf);
+		// free(base64_data_buf);
+		char *result;
+		int i = sprintf(result, "%d:%s", element->element_type, (const char *) base64_data_buf);
+		free(base64_data_buf);
+		free(data_buf);
+		return result;
+	}
+
+	static Element *Deserialize_cmp(char *object, Pairing *group = NULL, int compression = 1) {
+		Element *origObject = NULL;
+
+		uint8_t *serial_buf = (uint8_t *)object;
+		int type = atoi((const char *) &(serial_buf[0]));
+		uint8_t *base64_buf = (uint8_t *)(serial_buf + 2);
+
+		size_t deserialized_len = 0;
+		uint8_t *binary_buf = (uint8_t*)NewBase64Decode((const char *) base64_buf, strlen((char *) base64_buf), &deserialized_len);
+
+		if((type == ZR || type == GT) && deserialized_len > 0) {
+		//				debug("result => ");
+		//				printf_buffer_as_hex(binary_buf, deserialized_len);
+			origObject = createNewElement((GroupType)type, group);
+			element_from_bytes(origObject->e, binary_buf);
+			free(binary_buf);
+			return origObject;
+		}
+		else if((type == G1 || type == G2) && deserialized_len > 0) {
+			// now convert element back to an element type (assume of type ZR for now)
+			origObject = createNewElement((GroupType)type, group);
+			if(compression) {
+				element_from_bytes_compressed(origObject->e, binary_buf);
+			} else {
+				element_from_bytes(origObject->e, binary_buf);
+			}
+			free(binary_buf);
+			return origObject;
+		}
+
+		cout<<"Nothing to deserialize in element.";
+		return NULL;
+	}
+
+	static bool Group_Check(Pairing *group = NULL, Element *object = NULL) {
+		if(check_membership(object) == TRUE) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	static long *Get_Order(Pairing *group = NULL) {
+		long *object = group->pair_obj->r;
+		return object; /* returns a PyInt */
 	}
 };
 
