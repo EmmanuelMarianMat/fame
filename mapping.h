@@ -3,8 +3,6 @@
 #include <pbc/pbc.h>
 #include <iostream>
 #include <math.h>
-#include <string>
-#include <cstring>
 #include "base64.h"
 #include <openssl/objects.h>
 #include <openssl/rand.h>
@@ -280,7 +278,7 @@ class Pairing_module {
 		return newObject;
 	}
 
-	string sha2_hash(Element *object, int label) {
+	char* sha2_hash(Element *object, int label) {
 		char* hash_hex = NULL;
 		if(object->elem_initialized == FALSE) {
 			cout<<"null element object";
@@ -294,14 +292,14 @@ class Pairing_module {
 		}
 
 		hash_hex = convert_buffer_to_hex(hash_buf, hash_size);
-		string str(hash_hex);
+		char* str(hash_hex);
 		free(hash_hex);
 		return str;
 	}
 
 	// The hash function should be able to handle elements of various types and accept
 	// a field to hash too. For example, a string can be hashed to Zr or G1, an element in G1 can be
-	Element *Element_hash(Pairing *group, string objList, GroupType type) {
+	Element *Element_hash(Pairing *group, char* str, GroupType type) {
 		Element *newObject = NULL, *object = NULL;
 		int result, i;
 
@@ -310,8 +308,6 @@ class Pairing_module {
 		int hash_len = mpz_sizeinbase(group->pair_obj->r, 2) / BYTE;
 		uint8_t hash_buf[hash_len];
 		memset(hash_buf, 0, hash_len);
-
-		const char* str = objList.c_str();
 
 		if(type == ZR) {
 			// create an element of Zr
