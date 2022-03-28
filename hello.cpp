@@ -82,12 +82,12 @@ params.insert({"MNT224", d224});
 params.insert({"BN254", f254});
 
 class PairingGroup{
-    Pairing_module pairing;
+    Pairing_module *pairing;
     const char* param;
     int secparam;
     PairingGroup(const char* param_id, int secparam_=512){
         const char* pairID = params.at(param_id);
-        pairing = Pairing_module(pairID);
+        pairing = &(Pairing_module(pairID));
         param = pairID;
         secparam = secparam_;
     }
@@ -100,9 +100,9 @@ class PairingGroup{
         return NULL;
     }
 
-    bool isMember(Element_class obj){
+    bool isMember(Element_class* obj){
         return pairing.Group_Check(pairing, obj)
     }
-    
+
     
 };
