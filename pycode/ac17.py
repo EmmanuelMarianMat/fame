@@ -19,7 +19,7 @@ from ABEnc import ABEnc
 #TODO this wont run
 from msp import MSP
 
-debug = False
+debug = True
 
 
 class AC17CPABE(ABEnc):
