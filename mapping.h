@@ -36,12 +36,12 @@ typedef struct {
 } Pairing;
 
 typedef struct {
-  Pairing *pairing;
-  element_t e;
-  GroupType element_type;
-  int elem_initialized;
-  element_pp_t e_pp;
-  int elem_initPP;
+	Pairing *pairing;
+	element_t e;
+	GroupType element_type;
+	int elem_initialized;
+	element_pp_t e_pp;
+	int elem_initPP;
 } Element;
 
 #define IS_SAME_GROUP(a, b) \
@@ -50,8 +50,7 @@ typedef struct {
 		return NULL;	\
 	}
 
-int hash_to_bytes(uint8_t *input_buf, int input_len, uint8_t *output_buf, int hash_len, uint8_t hash_prefix)
-{
+int hash_to_bytes(uint8_t *input_buf, int input_len, uint8_t *output_buf, int hash_len, uint8_t hash_prefix) {
 	SHA256_CTX sha2;
 	const int new_input_len = input_len + 2; // extra byte for prefix
 	uint8_t new_input[new_input_len];
@@ -92,15 +91,14 @@ int hash_to_bytes(uint8_t *input_buf, int input_len, uint8_t *output_buf, int ha
 	return TRUE;
 }
 
-int hash_element_to_bytes(element_t *element, int hash_size, uint8_t* output_buf, int prefix)
-{
+int hash_element_to_bytes(element_t *element, int hash_size, uint8_t* output_buf, int prefix) {
 	unsigned int buf_len;
-	
+
 	buf_len = element_length_in_bytes(*element);
 	uint8_t *temp_buf = (uint8_t *)malloc(buf_len+1);
 	if (temp_buf == NULL)
 		return FALSE;
-	
+
 	element_to_bytes(temp_buf, *element);
 	if(prefix == 0)
 		prefix = HASH_FUNCTION_ELEMENTS;
@@ -109,25 +107,24 @@ int hash_element_to_bytes(element_t *element, int hash_size, uint8_t* output_buf
 		prefix *= -1;
 	int result = hash_to_bytes(temp_buf, buf_len, output_buf, hash_size, prefix);
 	free(temp_buf);
-	
+
 	return result;
 }
 
-char *convert_buffer_to_hex(uint8_t * data, size_t len)
-{
+char *convert_buffer_to_hex(uint8_t * data, size_t len) {
 	size_t i;
 	char *tmp = (char *) malloc(len*2 + 2);
 	char *tmp2 = tmp;
 	memset(tmp, 0, len*2+1);
 
 	for(i = 0; i < len; i++)
-	tmp += sprintf(tmp, "%02x", data[i]);
+		tmp += sprintf(tmp, "%02x", data[i]);
 
 	return tmp2;
 }
 
 // assumes that pairing structure has been initialized
-static Element *createNewElement(GroupType element_type, Pairing *pairing) {
+Element *createNewElement(GroupType element_type, Pairing *pairing) {
 	Element *retObject;
 	if(element_type == ZR) {
 		element_init_Zr(retObject->e, pairing->pair_obj);
@@ -187,35 +184,73 @@ int check_membership(Element *elementObj) {
 		result = element_is1(e) ? TRUE : FALSE; // TODO: verify this
 		element_clear(e);
 	}
-	else {/* not a valid type */ }
+	else
+		cout<<"not a valid type";
+
 	return result;
 }
 
-class Pairing_module {
-    static Element *Element_elem(Pairing *group, int type,unsigned long long_obj=LONG_MAX){
-	    Element *retObject = NULL;
+class Element_class {
+	Pairing *pairing;
+	element_t e;
+	GroupType element_type;
+	int elem_initialized;
+	element_pp_t e_pp;
+	int elem_initPP;
+	bool Element_initPP() {
+		if(elem_initPP == TRUE)
+			cout<<"Pre-processing table alreay initialized.";
 
-	    if(type >= ZR && type <= GT) {
-		    retObject = createNewElement((GroupType)type, group);
-	    }
-        else{
-    		cout<<"unrecognized group type.";
-            return NULL;
-        }
-        if(long_obj!=LONG_MAX){
-		    mpz_t m;
-		    mpz_init(m);
-		    element_set_mpz(retObject->e, m);
-		    mpz_clear(m);
+		if(elem_initialized == FALSE)
+			cout<<"Must initialize element to a field (G1, G2, or GT).";
+
+		if(element_type >= G1 && element_type <= GT) {
+			element_pp_init(e_pp, e);
+			elem_initPP = TRUE;
+			return true;
+		}
+		return false;
+	}
+
+	void Element_set(long int value) {
+		if(elem_initialized == FALSE)
+			cout<<"Must initialize element to a field (G1, G2, or GT).";
+
+		if(value == 0)
+				element_set0(e);
+		else if(value == 1)
+				element_set1(e);
+		else
+				element_set_si(e, (signed int) value);
+	}
+};
+
+class Pairing_module {
+	Element element;
+	Element *Element_elem(Pairing *group, int type,unsigned long long_obj=LONG_MAX) {
+		Element *retObject = NULL;
+
+		if(type >= ZR && type <= GT)
+			retObject = createNewElement((GroupType)type, group);
+		else {
+			cout<<"unrecognized group type.";
+			return NULL;
+		}
+
+		if(long_obj!=LONG_MAX){
+			mpz_t m;
+			mpz_init(m);
+			element_set_mpz(retObject->e, m);
+			mpz_clear(m);
 			mpz_set_ui (m, long_obj);
 			element_set_mpz(retObject->e, m);
 			mpz_clear(m);
-        }
+		}
 
 		return retObject;
-    }
+	}
 
-	Element *Apply_pairing(Element *lhs, Element *rhs, Pairing *group = NULL){
+	Element *Apply_pairing(Element *lhs, Element *rhs, Pairing *group = NULL) {
 		Element *newObject;
 		IS_SAME_GROUP(lhs, rhs);
 		if(pairing_is_symmetric(lhs->pairing->pair_obj)) {
@@ -223,12 +258,13 @@ class Pairing_module {
 			pairing_apply(newObject->e, lhs->e, rhs->e, rhs->pairing->pair_obj);
 			return newObject;
 		}
-		if(lhs->element_type == rhs->element_type){
-			if(lhs->element_type == G1){
+
+		if(lhs->element_type == rhs->element_type) {
+			if(lhs->element_type == G1) {
 				cout<<"Both elements are of type G1 in asymmetric pairing";
 				return NULL;
 			}
-			if(lhs->element_type == G2){
+			if(lhs->element_type == G2) {
 				cout<<"Both elements are of type G2 in asymmetric pairing";
 				return NULL;
 			}
@@ -240,12 +276,13 @@ class Pairing_module {
 			pairing_apply(newObject->e, lhs->e, rhs->e, rhs->pairing->pair_obj);
 		else if(lhs->element_type == G2)
 			pairing_apply(newObject->e, rhs->e, lhs->e, rhs->pairing->pair_obj);
+
 		return newObject;
 	}
 
-	string sha2_hash(Element *object, int label){
+	string sha2_hash(Element *object, int label) {
 		char* hash_hex = NULL;
-		if(object->elem_initialized == FALSE){
+		if(object->elem_initialized == FALSE) {
 			cout<<"null element object";
 			return NULL;
 		}
@@ -255,8 +292,8 @@ class Pairing_module {
 			cout<<"failed to hash element";
 			return NULL;
 		}
+
 		hash_hex = convert_buffer_to_hex(hash_buf, hash_size);
-		
 		string str(hash_hex);
 		free(hash_hex);
 		return str;
@@ -264,10 +301,10 @@ class Pairing_module {
 
 	// The hash function should be able to handle elements of various types and accept
 	// a field to hash too. For example, a string can be hashed to Zr or G1, an element in G1 can be
-	static Element *Element_hash(Pairing *group, string objList, GroupType type) {
+	Element *Element_hash(Pairing *group, string objList, GroupType type) {
 		Element *newObject = NULL, *object = NULL;
 		int result, i;
-		 
+
 		char *tmp = NULL;
 
 		int hash_len = mpz_sizeinbase(group->pair_obj->r, 2) / BYTE;
@@ -290,14 +327,14 @@ class Pairing_module {
 			element_from_hash(newObject->e, hash_buf, hash_len);
 		}
 		else if(type == G1 || type == G2) { // depending on the curve hashing to G2 might not be supported
-		    // element to G1	
+			// element to G1	
 			// hash bytes using SHA1
 			int str_length = (int) strlen(str);
 			result = hash_to_bytes((uint8_t *) str, str_length, hash_buf, hash_len, HASH_FUNCTION_Zr_TO_G1_ROM);
 			if(!result) { 
 				cout<<"could not hash to bytes.";
 				return NULL; 
-			}			
+			}
 			newObject = createNewElement(type, group);
 			element_from_hash(newObject->e, hash_buf, hash_len);
 		}
@@ -305,46 +342,47 @@ class Pairing_module {
 			cout<<"cannot hash a string to that field. Only Zr or G1.";
 			return NULL;
 		}
+
 		return newObject;
 	}
 
-    static Element *Element_random(Pairing *group, int arg1, int seed=-1){
-        Element *retObject;
-    	int e_type = -1;
-    	if(arg1 == ZR) {
-    		element_init_Zr(retObject->e, group->pair_obj);
-    		e_type = ZR;
-    	}
-    	else if(arg1 == G1) {
-    		element_init_G1(retObject->e, group->pair_obj);
-    		e_type = G1;
-    	}
-    	else if(arg1 == G2) {
-    		element_init_G2(retObject->e, group->pair_obj);
-    		e_type = G2;
-    	}
-    	else if(arg1 == GT) {
-    		cout<<"cannot generate random elements in GT.";
-            return NULL;
-    	}
-    	else {
-    		cout<<"unrecognized group type.";
-            return NULL;
-    	}
+	Element *Element_random(Pairing *group, int arg1, int seed=-1) {
+		Element *retObject;
+		int e_type = -1;
+		if(arg1 == ZR) {
+			element_init_Zr(retObject->e, group->pair_obj);
+			e_type = ZR;
+		}
+		else if(arg1 == G1) {
+			element_init_G1(retObject->e, group->pair_obj);
+			e_type = G1;
+		}
+		else if(arg1 == G2) {
+			element_init_G2(retObject->e, group->pair_obj);
+			e_type = G2;
+		}
+		else if(arg1 == GT) {
+			cout<<"cannot generate random elements in GT.";
+			return NULL;
+		}
+		else {
+			cout<<"unrecognized group type.";
+			return NULL;
+		}
 
-    	if(seed > -1) {
-    		pbc_random_set_deterministic((uint32_t) seed);
-    	}
-    	element_random(retObject->e);
-    	retObject->elem_initialized = TRUE;
-    	retObject->elem_initPP = FALSE;
-    	retObject->element_type = (GroupType)e_type;
-    	/* set the group object for element operations */
-    	retObject->pairing = group;
-        return retObject;
-    }
+		if(seed > -1)
+			pbc_random_set_deterministic((uint32_t) seed);
 
-	static const char* Serialize_cmp(Element *element = NULL, int compression=1){
+		element_random(retObject->e);
+		retObject->elem_initialized = TRUE;
+		retObject->elem_initPP = FALSE;
+		retObject->element_type = (GroupType)e_type;
+		/* set the group object for element operations */
+		retObject->pairing = group;
+		return retObject;
+	}
+
+	const char* Serialize_cmp(Element *element = NULL, int compression=1) {
 		if(element->elem_initialized == FALSE) {
 			cout<<"Element not initialized.";
 			return NULL;
@@ -356,7 +394,7 @@ class Pairing_module {
 		if(element->element_type == ZR || element->element_type == GT) {
 			elem_len = element_length_in_bytes(element->e);
 			data_buf = (uint8_t *) malloc(elem_len + 1);
-			if(data_buf == NULL){
+			if(data_buf == NULL) {
 				cout<<"heap full";
 				return NULL;
 			}
@@ -365,11 +403,11 @@ class Pairing_module {
 		}
 		else if(element->element_type != NONE_G) {
 		// object initialized now retrieve element and serialize to a char buffer.
-			if(compression){
+			if(compression)
 				elem_len = element_length_in_bytes_compressed(element->e);
-			}else{
+			else
 				elem_len = element_length_in_bytes(element->e);
-			}
+
 			data_buf = (uint8_t *) malloc(elem_len + 1);
 			if(data_buf == NULL){
 				cout<<"heap full";
@@ -398,7 +436,7 @@ class Pairing_module {
 		return result;
 	}
 
-	static Element *Deserialize_cmp(char *object, Pairing *group = NULL, int compression = 1) {
+	Element *Deserialize_cmp(char *object, Pairing *group = NULL, int compression = 1) {
 		Element *origObject = NULL;
 
 		uint8_t *serial_buf = (uint8_t *)object;
@@ -419,11 +457,11 @@ class Pairing_module {
 		else if((type == G1 || type == G2) && deserialized_len > 0) {
 			// now convert element back to an element type (assume of type ZR for now)
 			origObject = createNewElement((GroupType)type, group);
-			if(compression) {
+			if(compression)
 				element_from_bytes_compressed(origObject->e, binary_buf);
-			} else {
+			else
 				element_from_bytes(origObject->e, binary_buf);
-			}
+
 			free(binary_buf);
 			return origObject;
 		}
@@ -432,16 +470,14 @@ class Pairing_module {
 		return NULL;
 	}
 
-	static bool Group_Check(Pairing *group = NULL, Element *object = NULL) {
-		if(check_membership(object) == TRUE) {
+	bool Group_Check(Pairing *group = NULL, Element *object = NULL) {
+		if(check_membership(object) == TRUE)
 			return true;
-		}
-		else {
+		else
 			return false;
-		}
 	}
 
-	static long Get_Order(Pairing *group = NULL) {
+	long Get_Order(Pairing *group = NULL) {
 		long object;
 		mpz_set_si(group->pair_obj->r, object);
 		return object; /* returns a PyInt */
