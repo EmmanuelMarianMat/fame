@@ -483,7 +483,3 @@ class Pairing_module {
 		return object; /* returns a PyInt */
 	}
 };
-
-int main(){
-    return 0;
-}
