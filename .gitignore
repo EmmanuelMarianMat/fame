@@ -6,9 +6,3 @@ pycode/.vscode/launch.json
 .vscode/settings.json
 .vscode/settings.json
 *.gch
-pycode/ac17.pyc
-pycode/config.pyc
-pycode/enum.pyc
-pycode/math/__init__.pyc
-pycode/pairingcurves.pyc
-pycode/pairinggroup.pyc
