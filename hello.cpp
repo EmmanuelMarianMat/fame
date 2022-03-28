@@ -1,5 +1,4 @@
 #include "mapping.h"
-#include<string>
 #include<unordered_map>
 
 const char* a = "type a\
@@ -74,19 +73,36 @@ alpha0 3863169002219266599791692260026722314580119160570404204932771827274992275
 alpha1 12833444880567801377541563780933054992830992527850214079342609648119124982935\
 "
 
-unordered_map<string, string> params;
-params.insert({string("SS512"), string(a)});
-params.insert({string("SS1024"), string(a1)});
-params.insert({string("MNT159"), string(d159)});
-params.insert({string("MNT201"), string(d201)});
-params.insert({string("MNT224"), string(d224)});
-params.insert({string("BN254"), string(f254)});
+unordered_map<const char*, const char*> params;
+params.insert({"SS512", a});
+params.insert({"SS1024", a1});
+params.insert({"MNT159", d159});
+params.insert({"MNT201", d201});
+params.insert({"MNT224", d224});
+params.insert({"BN254", f254});
 
 class PairingGroup{
     Pairing_module pairing;
-    PairingGroup(string param_id, int secparam=512){
-        if(param_id == ''){
-
-        }
+    const char* param;
+    int secparam;
+    PairingGroup(const char* param_id, int secparam_=512){
+        const char* pairID = params.at(param_id);
+        pairing = Pairing_module(pairID);
+        param = pairID;
+        secparam = secparam_;
     }
+
+    long order(){
+        return pairing->Get_Order(&pairing);
+    }
+
+    void *paramgen(){
+        return NULL;
+    }
+
+    bool isMember(Element_class obj){
+        return pairing.Group_Check(pairing, obj)
+    }
+    
+    
 };
