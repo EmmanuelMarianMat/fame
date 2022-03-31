@@ -93,16 +93,38 @@ class PairingGroup{
     }
 
     long order(){
-        return pairing->Get_Order(&pairing);
+        return pairing->Get_Order(pairing);
     }
 
-    void *paramgen(){
-        return NULL;
-    }
-
-    bool isMember(Element_class obj){
+    bool isMember(Element_class* obj){
         return pairing.Group_Check(pairing, obj)
     }
-    
-    
+
+    const char* groupType(){
+        return "pairing";
+    }
+
+    int messageSize(){
+        return secparam/8;
+    }
+
+    Element_class *init(GroupType type, long value=LONG_MAX){
+        if(value != LONG_MAX)
+            return pairing->Element_elem(pairing, type, value);
+        else    
+            return pairing->Element_elem(pairing, type);
+    }
+
+    Element_class *random(GroupType type=ZR, int seed=INT_MIN){
+        if(type==GT)
+            return;
+    }
+
+    Element_class *pair_prod(Element_class *lhs, Element_class *rhs){
+        return pairing->Apply_pairing(lhs, rhs, pairing);
+    }
+
 };
+
+Pairing_module *pairing;
+
