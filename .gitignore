@@ -6,3 +6,4 @@ pycode/.vscode/launch.json
 .vscode/settings.json
 .vscode/settings.json
 *.gch
+*.pyc
