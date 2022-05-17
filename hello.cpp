@@ -82,12 +82,13 @@ params.insert({"MNT224", d224});
 params.insert({"BN254", f254});
 
 class PairingGroup{
-    Pairing_module pairing;
-    const char* param;
+    Pairing_module *pairing;
+    char* param;
     int secparam;
-    PairingGroup(const char* param_id, int secparam_=512){
+    long 
+    PairingGroup(const char* param_id, int secparam=512){
         const char* pairID = params.at(param_id);
-        pairing = Pairing_module(pairID);
+        pairing = &(Pairing_module(pairID));
         param = pairID;
         secparam = secparam_;
     }
@@ -108,14 +109,14 @@ class PairingGroup{
         return secparam/8;
     }
 
-    Element_class *init(GroupType type, long value=LONG_MAX){
+    Element_class *init(enum Group type, long value=LONG_MAX){
         if(value != LONG_MAX)
             return pairing->Element_elem(pairing, type, value);
         else    
             return pairing->Element_elem(pairing, type);
     }
 
-    Element_class *random(GroupType type=ZR, int seed=INT_MIN){
+    Element_class *random(enum Group type=ZR, int seed=INT_MIN){
         if(type==GT)
             return;
     }
@@ -127,4 +128,3 @@ class PairingGroup{
 };
 
 Pairing_module *pairing;
-

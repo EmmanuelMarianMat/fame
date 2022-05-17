@@ -3,7 +3,6 @@
 #include<vector>
 #include<unordered_map>
 #include <algorithm> 
-using namespace std;
 
 unordered_map<string,int> OpType = {
     {"OR",0},

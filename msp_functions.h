@@ -5,8 +5,6 @@
 // User-defined header files
 #include "class_definitions.h"
 
-using namespace std;
-
 void walkThrough(BinNode *root, string indent, bool last){
     if(root){
         if(root->getNodeType()=="AND"||root->getNodeType()=="OR")

@@ -10,8 +10,6 @@
 #ifndef CLASS_DEFINITIONS_H_
 #define CLASS_DEFINITIONS_H_
 
-using namespace std;
-
 unordered_map<string,int> OpType = {
     {"OR",0},
     {"AND",1},
