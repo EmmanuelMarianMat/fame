@@ -1,0 +1,44 @@
+				ONE
+			OR
+				THREE
+		AND
+				FOUR
+			AND 
+				FIVE
+	OR
+				TWO
+			AND
+				FOUR
+		AND
+				ONE
+			OR
+				TWO
+AND
+			ONE
+		OR
+			TWO
+	AND
+				THREE
+			OR
+				FIVE
+		AND
+				TWO
+			OR
+				FOUR
+
+
+
+#ifndef PAIRINGMODULE_H
+#define PAIRINGMODULE_H
+
+#include <stdlib.h>
+#include <gmp.h>
+#include <pbc/pbc.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <openssl/objects.h>
+#include <openssl/rand.h>
+#include <openssl/sha.h>
+#ifdef BENCHMARK_ENABLED
+#include "benchmark_util.h"
